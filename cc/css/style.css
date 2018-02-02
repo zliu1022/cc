@@ -1,0 +1,76 @@
+body {
+	background: #333
+}
+
+.avatar {
+	width: 38px;
+	height: 38px
+}
+
+.like,
+.toggle-comment {
+	color: #333
+}
+
+.like:active,
+.toggle-comment:active,
+.like:focus,
+.toggle-comment:focus,
+.like:hover,
+.toggle-comment:hover {
+	outline: none;
+	color: #333
+}
+
+.liked:active,
+.liked:focus,
+liked:hover {
+	outline: none
+}
+
+.like-avatar {
+	width: 18px;
+	height: 18px;
+	margin-left: 5px
+}
+
+.comments {
+	margin-top: 5px;
+	display: none
+}
+
+.comments .pub-comment {
+	margin-top: 5px
+}
+
+.list-group-item .trained {
+	position: absolute;
+	width: 100px;
+	top: 30px;
+	right: 10px;
+	transform: rotate(30deg);
+	-ms-transform: rotate(30deg);
+	-moz-transform: rotate(30deg);
+	-webkit-transform: rotate(30deg);
+	-o-transform: rotate(30deg)
+}
+
+.backToTop {
+	position: fixed;
+	cursor: pointer;
+	display: none;
+	bottom: 20px;
+	right: 20px;
+	height: 54px;
+	width: 54px;
+	background: url(../img/backtotop.png)
+}
+
+#datepicker .datepicker-inline {
+	width: auto
+}
+
+#datepicker .table-condensed {
+	width: 100%;
+	max-width: 100%
+}

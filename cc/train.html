@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en" manifest="cache.manifest">
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+		<title>CC Train</title>
+		<link rel="stylesheet" href="css/weui.min.css" />
+		<link rel="stylesheet" href="css/example_weui.css">
+	</head>
+
+	<body>
+		<div class="container" id="container">
+			<div class="cell">
+				<div class="hd">
+					<h1 class="page_title">CC Train
+						<img class="ccimg" id="login" src="img/login-icon.png" style="position: absolute; top: 3rem; right: 1rem;">
+					</h1>
+				</div>
+				<div class="bd">
+
+					<div class="weui_cells_title">Convict condition tracker</div>
+
+					<div class="weui_cells weui_cells_access" id="content">
+						<a class="weui_cell" href="#" id="PUSHUP" value=0>
+							<div class="weui_cell_hd">
+								<img src="img/fwc10.png" alt="icon" class="ccimg">
+							</div>
+							<div class="weui_cell_bd weui_cell_primary">
+								<p>PUSHUP</p>
+							</div>
+							<div class="weui_cell_ft" id="progress0">
+								Level1： 25/100
+							</div>
+						</a>
+						<a class="weui_cell" href="#" id="BRIDGE" value=1>
+							<div class="weui_cell_hd">
+								<img src="img/q10.png" alt="icon" class="ccimg">
+							</div>
+							<div class="weui_cell_bd weui_cell_primary">
+								<p>BRIDGE</p>
+							</div>
+							<div class="weui_cell_ft" id="progress1">
+								Level5： 05/100
+							</div>
+						</a>
+						<a class="weui_cell" href="#" id="LEGRAISE" value=2>
+							<div class="weui_cell_hd">
+								<img src="img/jt10.png" alt="icon" class="ccimg">
+							</div>
+							<div class="weui_cell_bd weui_cell_primary">
+								<p>LEG RAISE</p>
+							</div>
+							<div class="weui_cell_ft" id="progress2">
+								Level5： 15/100
+							</div>
+						</a>
+						<a class="weui_cell" href="#" id="SQUAT" value=3>
+							<div class="weui_cell_hd">
+								<img src="img/sd10.png" alt="icon" class="ccimg">
+							</div>
+							<div class="weui_cell_bd weui_cell_primary">
+								<p>SQUAT</p>
+							</div>
+							<div class="weui_cell_ft" id="progress3">
+								Level6：15/100
+							</div>
+						</a>
+						<a class="weui_cell" href="#" id="PULLUP" value=4>
+							<div class="weui_cell_hd">
+								<img src="img/ytxs10.png" alt="icon" class="ccimg">
+							</div>
+							<div class="weui_cell_bd weui_cell_primary">
+								<p>PULLUP</p>
+							</div>
+							<div class="weui_cell_ft" id="progress4">
+								Level3： 08/100
+							</div>
+						</a>
+						<a class="weui_cell" href="#" id="HANDSTAND" value=5>
+							<div class="weui_cell_hd">
+								<img src="img/dlc10.png" alt="icon" class="ccimg">
+							</div>
+							<div class="weui_cell_bd weui_cell_primary">
+								<p>HANDSTAND</p>
+							</div>
+							<div class="weui_cell_ft" id="progress5">
+								Level3： 30/100
+							</div>
+						</a>
+						<a class="weui_cell" href="#" id="BASIN" value=6 style="display: none;">
+							<div class="weui_cell_hd">
+								<img src="img/avatar.png" alt="icon" class="ccimg">
+							</div>
+							<div class="weui_cell_bd weui_cell_primary">
+								<p>盆底肌训练</p>
+							</div>
+							<div class="weui_cell_ft" id="progress5">
+								Level3： 30/100
+							</div>
+						</a>
+					</div>
+
+					<div class="weui_cells weui_cells_access" id="test">
+						<a class="weui_cell" href="teach.html" id="wiki" value=0>
+							<div class="weui_cell_hd">
+								<img src="img/avatar.png" alt="icon" class="ccimg">
+							</div>
+							<div class="weui_cell_bd weui_cell_primary">
+								<p>Wiki</p>
+							</div>
+							<div class="weui_cell_ft">
+								Exercise Encyclopedia
+							</div>
+						</a>
+					</div>
+
+					<div class="weui_cells" id="dbrecord">
+					</div>
+
+					<a href="javascript:;" class="weui_btn weui_btn_primary ccbtn_addrecord" id="addrecord" style="display: none;">添加/修改</a>
+
+					<div class="weui_dialog_confirm" id="dialog" style="transform-origin: 0px 0px 0px; opacity: 1; /*transform: scale(1, 1);*/display:none">
+						<div class="weui_mask"></div>
+						<div class="weui_dialog">
+							<div class="weui_dialog_hd"><strong class="weui_dialog_title">添加记录</strong></div>
+							<!--div class="weui_dialog_bd">居左对齐，请修改</div-->
+
+							<div class="weui_cells weui_cells_form">
+
+								<div class="weui_cell">
+									<div class="weui_cell_hd"><label for="" class="weui_label">日期</label></div>
+									<div class="weui_cell_bd">
+										<input class="weui_input" type="date" value="" id="date">
+									</div>
+								</div>
+
+								<div class="weui_cell">
+									<div class="weui_cell_hd"><label class="weui_label">备注</label></div>
+									<div class="weui_cell_bd">
+										<input class="weui_input" type="text" placeholder="请输入锻炼后的心情" id="comment">
+									</div>
+								</div>
+
+								<div class="weui_cell weui_cell_select weui_select_after">
+									<div class="weui_cell_hd">
+										<label for="" class="weui_label">级别</label>
+									</div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<select class="weui_select" name="level" id="level">
+											<option value="1" selected>第一式 墙壁俯卧撑</option>
+											<option value="2">第二式 上斜俯卧撑</option>
+											<option value="3">第三式 膝盖俯卧撑</option>
+											<option value="4">第四式 半俯卧撑</option>
+											<option value="5">第五式 标准俯卧撑</option>
+											<option value="6">第六式 窄距俯卧撑</option>
+											<option value="7">第七式 偏重俯卧撑</option>
+											<option value="8">第八式 单臂半俯卧撑</option>
+											<option value="9">第九式 杠杆俯卧撑</option>
+											<option value="10">最终式 单臂俯卧撑</option>
+										</select>
+									</div>
+								</div>
+
+								<div class="weui_cell">
+									<div class="weui_cell_hd"><label class="weui_label">数量</label></div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<input class="weui_input" type="text" pattern="^([1-9]\d|\d)$" id="n1" placeholder="次">
+									</div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<input class="weui_input" type="text" pattern="^([1-9]\d|\d)$" id="n2" placeholder="次">
+									</div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<input class="weui_input" type="text" pattern="^([1-9]\d|\d)$" id="n3" placeholder="次">
+									</div>
+								</div>
+
+							</div>
+
+							<div>
+								<audio controls="controls" id="move-sound" preload="auto">
+									<source src="http://211.160.178.29:20521/cc/sound/counting_1.ogg" type="audio/ogg">
+									<source src="http://211.160.178.29:20521/cc/sound/counting_1.mp3" type="audio/mpeg">
+									<source src="http://211.160.178.29:20521/cc/sound/counting_1.wav" type="audio/wav">
+								</audio>
+								<audio controls="controls" id="hold-sound" preload="auto">
+									<source src="http://211.160.178.29:20521/cc/sound/counting_2.ogg" type="audio/ogg">
+									<source src="http://211.160.178.29:20521/cc/sound/counting_2.mp3" type="audio/mpeg">
+									<source src="http://211.160.178.29:20521/cc/sound/counting_2.wav" type="audio/wav">
+								</audio>
+
+							</div>
+							<div class="button_sp_area" style="margin-bottom: 20px;">
+								<a href="javascript:;" class="weui_btn weui_btn_mini" style="background-color: cadetblue" id="sound-test-mh">测试</a>
+								<a href="javascript:;" class="weui_btn weui_btn_mini" style="background-color: darkred" id="set212">设置</a>
+								<a href="javascript:;" class="weui_btn weui_btn_mini" style="background-color: cadetblue" id="sound-play">start</a>
+								<a href="javascript:;" data-action="start" class="weui_btn weui_btn_mini weui_btn_primary" id="toggle-count">开始</a>
+								<div id="count-op"></div>
+								<div id="count-text"></div>
+							</div>
+							<div class="weui_dialog_ft">
+								<a href="javascript:;" class="weui_btn_dialog default" id="addrecord_cancel">取消</a>
+								<a href="javascript:;" class="weui_btn_dialog primary" id="addrecord_ok">确定</a>
+							</div>
+						</div>
+					</div>
+
+					<div class="weui_dialog_confirm" id="set212dialog" style="transform-origin: 0px 0px 0px; opacity: 1; display:none">
+						<div class="weui_mask"></div>
+						<div class="weui_dialog" style="width: 70%;">
+							<div class="weui_dialog_hd"><strong class="weui_dialog_title">212设置</strong></div>
+							<!--div class="weui_dialog_bd">请选择或修改</div-->
+
+							<div class="weui_cells weui_cells_form">
+
+								<div class="weui_cell weui_cell_select weui_select_after">
+									<div class="weui_cell_hd">
+										<label for="" class="weui_label">级别</label>
+									</div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<select class="weui_select" name="level" id="level212">
+											<option value="0">PUSHUP</option>
+											<option value="1">BRIDGE</option>
+											<option value="2">LEGRAISE</option>
+											<option value="3">SQUAT</option>
+											<option value="4">PULLUP</option>
+											<option value="5">HANDSTAND</option>
+											<option value="6">BASIN</option>
+										</select>
+									</div>
+								</div>
+
+								<div class="weui_cell">
+									<div class="weui_cell_hd"><label class="weui_label">预备时长</label></div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<input class="weui_input" type="text" pattern="^([1-9]\d|\d)$" id="prepare_time" placeholder="秒">
+									</div>
+								</div>
+
+								<div class="weui_cell">
+									<div class="weui_cell_hd"><label class="weui_label">正向运动</label></div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<input class="weui_input" type="number" pattern="^([1-9]\d|\d)$" id="positive_time" placeholder="秒">
+									</div>
+								</div>
+
+								<div class="weui_cell">
+									<div class="weui_cell_hd"><label class="weui_label">停留时长</label></div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<input class="weui_input" type="number" pattern="^([1-9]\d|\d)$" id="hold_time" placeholder="秒">
+									</div>
+								</div>
+
+								<div class="weui_cell">
+									<div class="weui_cell_hd"><label class="weui_label">反向运动</label></div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<input class="weui_input" type="number" pattern="^([1-9]\d|\d)$" id="negative_time" placeholder="秒">
+									</div>
+								</div>
+
+								<div class="weui_cell">
+									<div class="weui_cell_hd"><label class="weui_label">间隔时长</label></div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<input class="weui_input" type="number" pattern="^([1-9]\d|\d)$" id="interval_time" placeholder="秒">
+									</div>
+								</div>
+
+								<div class="weui_cell">
+									<div class="weui_cell_hd"><label class="weui_label">重复</label></div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<input class="weui_input" type="number" pattern="^([1-9]\d|\d)$" id="repeat_time" placeholder="次数">
+									</div>
+								</div>
+							</div>
+
+							<!--p>备注
+					<input class="weui_input weui-prompt-input" type="text" name="comment" id="comment" style="width: 60%;" />
+				</p-->
+							<div class="weui_dialog_ft">
+								<a href="javascript:;" class="weui_btn_dialog default" id="set212_cancel">取消</a>
+								<a href="javascript:;" class="weui_btn_dialog primary" id="set212_ok">确定</a>
+							</div>
+						</div>
+					</div>
+
+					<div class="weui_dialog_confirm" id="logindialog" style="transform-origin: 0px 0px 0px; opacity: 1; display:none">
+						<div class="weui_mask"></div>
+						<div class="weui_dialog">
+							<div class="weui_dialog_hd"><strong class="weui_dialog_title"></strong>
+								<div><img src="img/login.png" style="width:20%"></div>
+							</div>
+							<div class="weui_dialog_bd">可输入guest，无密码进行试用</div>
+							<div class="weui_cells weui_cells_form">
+								<div class="weui_cell">
+									<div class="weui_cell_hd"><label class="weui_label">Prison No.</label></div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<input class="weui_input" type="text" pattern="^([1-9]\d|\d)$" id="prisonnumber" placeholder="0027" value='0027'>
+									</div>
+								</div>
+								<div class="weui_cell">
+									<div class="weui_cell_hd"><label class="weui_label">Password</label></div>
+									<div class="weui_cell_bd weui_cell_primary">
+										<input class="weui_input" type="password" pattern="^([1-9]\d|\d)$" id="password" placeholder="***">
+									</div>
+								</div>
+							</div>
+
+							<div class="weui_dialog_ft">
+								<a href="javascript:;" class="weui_btn_dialog primary" id="login_ok">确定</a>
+							</div>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+
+	</body>
+	
+	<script src="js/jquery-1.8.3.min.js" type="text/javascript" charset="utf-8"></script>
+	<script src="js/train.js" type="text/javascript" charset="utf-8"></script>
+
+</html>
