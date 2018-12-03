@@ -1,7 +1,18 @@
 {
   "PUSHUP": [],
   "BRIDGE": [],
-  "LEGRAISE": [],
+  "LEGRAISE": [
+    {
+      "Year": 2018,
+      "Month": 2,
+      "Day": 8,
+      "Level": 1,
+      "N1": 12,
+      "N2": 55,
+      "N3": 0,
+      "Comment": "比我也不知道怎么办"
+    }
+  ],
   "SQUAT": [],
   "PULLUP": [
     {
