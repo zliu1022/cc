@@ -149,6 +149,12 @@ $(document).ready(function() {
 		newpage(6);
 	});
 
+	// 返回首页：进入锻炼后 #content 被移除，重新加载即可干净地回到首页
+	// （标准模式下没有浏览器返回键，所以必须有 app 内的返回按钮）
+	$("#backhome").click(function() {
+		location.reload();
+	});
+
 	function newpage(idx) {
 		if(ccidx < 7) {
 			$("title").text(ccname);
@@ -156,6 +162,7 @@ $(document).ready(function() {
 			$("#content").remove();
 			$("#test").remove();
 			$("#addrecord").show();
+			$("#backhome").show();
 			//下面留着的代码，据说这才是正规的修改title的方式
 			/*$("title").html('PUSHUP');*/
 			/*document.title='PUSHUP';*/

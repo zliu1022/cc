@@ -2,7 +2,7 @@
  * sw.js — Service Worker：把整个 app 缓存到本地，实现完全离线。
  * 更新静态文件后，请把 CACHE 的版本号 +1（如 cc-v2），旧缓存会自动清理。
  */
-var CACHE = 'cc-v2';
+var CACHE = 'cc-v3';
 
 var ASSETS = [
 	"./",
