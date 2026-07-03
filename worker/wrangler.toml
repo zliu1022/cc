@@ -1,0 +1,14 @@
+# Cloudflare Worker 配置。部署步骤见 worker/README.md
+name = "cc-sync"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# D1 数据库绑定。database_id 在 `wrangler d1 create cc-db` 之后填入。
+[[d1_databases]]
+binding = "DB"
+database_name = "cc-db"
+database_id = "REPLACE_WITH_ID_FROM_d1_create"
+
+# 密钥不写在这里，用 `wrangler secret put APP_KEY` / `ADMIN_KEY` 设置：
+#   APP_KEY   —— 客户端写入用（会出现在公开前端里，仅用于挡机器人）
+#   ADMIN_KEY —— 后台用（私密，能看到所有人的数据）
