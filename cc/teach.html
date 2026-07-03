@@ -8,6 +8,11 @@
 		<title>CC Teach</title>
 		<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
 		<!--link rel="stylesheet" type="text/css" href="css/style.css"/-->
+		<link rel="manifest" href="manifest.json">
+		<meta name="theme-color" content="#f7f7f7">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-title" content="CC Train">
+		<link rel="apple-touch-icon" href="img/icon-180.png">
 		<script type="text/javascript" src="js/jquery-1.8.3.min.js"></script>
 	</head>
 	<style type="text/css">
@@ -4749,6 +4754,11 @@
 
 		</div>
 		<!--script type="text/javascript" src="js/common.js"></script-->
+		<script type="text/javascript">
+			if ('serviceWorker' in navigator) {
+				navigator.serviceWorker.register('sw.js').catch(function(e) {});
+			}
+		</script>
 	</body>
 
 </html>

@@ -1,0 +1,16 @@
+{
+  "name": "CC Train",
+  "short_name": "CC Train",
+  "description": "囚徒健身每日训练记录",
+  "lang": "zh-CN",
+  "start_url": "./train.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f7f7",
+  "theme_color": "#f7f7f7",
+  "icons": [
+    { "src": "img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

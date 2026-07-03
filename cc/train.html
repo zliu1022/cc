@@ -1,12 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" manifest="cache.manifest">
+<html lang="en">
 
 	<head>
 		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+		<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0,viewport-fit=cover">
 		<title>CC Train</title>
 		<link rel="stylesheet" href="css/weui.min.css" />
 		<link rel="stylesheet" href="css/example_weui.css">
+
+		<!-- PWA：可安装到 iPhone 主屏幕，离线可用 -->
+		<link rel="manifest" href="manifest.json">
+		<meta name="theme-color" content="#f7f7f7">
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="default">
+		<meta name="apple-mobile-web-app-title" content="CC Train">
+		<link rel="apple-touch-icon" href="img/icon-180.png">
 	</head>
 
 	<body>
@@ -180,13 +189,13 @@
 							<div>
 								<audio controls="controls" id="move-sound" preload="auto">
 									<!--source src="http://ip/cc/sound/counting_1.ogg" type="audio/ogg"-->
-									<source src="/cc/sound/counting_1.mp3" type="audio/mpeg">
-									<source src="/cc/sound/counting_1.wav" type="audio/wav">
+									<source src="sound/counting_1.mp3" type="audio/mpeg">
+									<source src="sound/counting_1.wav" type="audio/wav">
 								</audio>
 								<audio controls="controls" id="hold-sound" preload="auto">
 									<!--source src="http://ip/cc/sound/counting_2.ogg" type="audio/ogg"-->
-									<source src="/cc/sound/counting_2.mp3" type="audio/mpeg">
-									<source src="/cc/sound/counting_2.wav" type="audio/wav">
+									<source src="sound/counting_2.mp3" type="audio/mpeg">
+									<source src="sound/counting_2.wav" type="audio/wav">
 								</audio>
 
 							</div>
@@ -318,6 +327,14 @@
 	</body>
 	
 	<script src="js/jquery-1.8.3.min.js" type="text/javascript" charset="utf-8"></script>
+	<script src="js/db.js" type="text/javascript" charset="utf-8"></script>
 	<script src="js/train.js" type="text/javascript" charset="utf-8"></script>
+	<script type="text/javascript">
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.register('sw.js').catch(function(e) {
+				console.log('SW register failed: ' + e);
+			});
+		}
+	</script>
 
 </html>

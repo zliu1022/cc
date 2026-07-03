@@ -99,13 +99,9 @@ $(document).ready(function() {
 	var ccname = cclist[ccidx];
 	var ccimgname = ccimglist[ccidx];
 
-	var db = openDatabase('mydb', '1.0', 'Test DB', 2 * 1024 * 1024);
-	if(!db) {
-		console.log("数据库创建失败！");
-	} else {
-		console.log("数据库创建成功！");
-	}
-	
+	// 数据改用本地 IndexedDB（见 js/db.js）；恢复上次登录的用户分区
+	CCDB.setUser(localStorage.ccuser || 'guest');
+
 	var today = new Date();
 	var day = today.getDay();
 	$(plan[day]).css("background-color", "orange");
@@ -558,14 +554,6 @@ $(document).ready(function() {
 		var year = d.getFullYear();
 		var month = d.getMonth()+1;
 		var day = d.getDate();
-
-		/*本地数据库操作*/
-		var db = openDatabase('mydb', '1.0', 'Test DB', 2 * 1024 * 1024);
-		if(!db) {
-			console.log("数据库打开失败！");
-		} else {
-			console.log("数据库打开成功！");
-		}
 
 		//如果3个数量都是空，数据库又有这个记录，就应该删除
 		//需要增加代码： 如果3个数量都是空，也不应该添加这个记录,操作上也删除试试
@@ -1357,15 +1345,13 @@ $(document).ready(function() {
 		$("#logindialog").show();
 		
 		/*把session id设置为无效*/
-		sessionStorage.login = 0;
+		localStorage.login = 0;
 	});
 	$("#login_ok").click(function(event) {
 		
-		if ( ($("#prisonnumber").val() == '0027') && ($("#password").val() == '123') ||
-			($("#prisonnumber").val() == 'bb') ||
-			($("#prisonnumber").val() == 'guest')
-			) {
-			
+		// 数据存本地，按 Prison No. 分区，任意非空编号皆可登录（密码不再校验）
+		if ( $("#prisonnumber").val() ) {
+
 			$.ajax({
 				dataType: 'jsonp',
 				url: '/db/newdb' + '?Name=' + $("#prisonnumber").val() + '&Password=' + $("#password").val(),
@@ -1373,8 +1359,9 @@ $(document).ready(function() {
 				success: function(data) {
 					console.log("success: " + JSON.stringify(data));
 					$("#logindialog").hide();
-					/*把session id设置为有效*/
-					sessionStorage.login = 1;
+					/*记住登录状态与用户分区*/
+					localStorage.login = 1;
+					localStorage.ccuser = $("#prisonnumber").val();
 					
 					for(var i=0; i<cclist.length; i++) {
 						$.ajax({
@@ -1413,7 +1400,7 @@ $(document).ready(function() {
 		}
 	});
 	/*获取session id，有效则隐藏logindialog*/
-	if(sessionStorage.login == 1) {
+	if(localStorage.login == 1) {
 		$("#logindialog").hide();
 
 		for(var i=0; i<cclist.length; i++) {
