@@ -7,7 +7,7 @@ compatibility_date = "2024-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "cc-db"
-database_id = "REPLACE_WITH_ID_FROM_d1_create"
+database_id = "bf0feb34-fcab-424e-8716-10df02e14d0f"
 
 # 密钥不写在这里，用 `wrangler secret put APP_KEY` / `ADMIN_KEY` 设置：
 #   APP_KEY   —— 客户端写入用（会出现在公开前端里，仅用于挡机器人）

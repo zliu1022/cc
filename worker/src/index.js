@@ -61,7 +61,8 @@ async function pushOne(env, usr, rec) {
 	).bind(
 		usr, rec.Table, rec.Year | 0, rec.Month | 0, rec.Day | 0, rec.Level | 0,
 		rec.N1 | 0, rec.N2 | 0, rec.N3 | 0, rec.Comment || '',
-		rec.updated_at | 0, rec.deleted ? 1 : 0
+		// 注意：不能用 |0，会把毫秒时间戳截断成 32 位整数，破坏 LWW
+		Number(rec.updated_at) || 0, rec.deleted ? 1 : 0
 	).run();
 }
 

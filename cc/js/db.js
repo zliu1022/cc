@@ -1,24 +1,31 @@
 /*
- * db.js — 本地数据层（IndexedDB），替代原来的 Node/lowdb 服务器。
+ * db.js — 本地优先(IndexedDB) + 云同步(Cloudflare Worker + D1)。
  *
- * 数据全部存在手机本地，彻底离线、不依赖任何服务器。
+ * - 读/写先走本地，界面秒开、离线可用。
+ * - 写入后把改动 push 到云端；启动、登录、联网、写入后会 pull 云端更新。
+ * - 冲突用 last-write-wins（按 updated_at）；删除用墓碑 deleted=1，保证能同步。
+ * - 多用户按 Prison No.(user) 分区；APP_KEY 会进前端，仅用于挡机器人。
  *
- * 结构：一个对象仓库 records，主键为
- *   [user, table, Year, Month, Day, Level]
- * 这样"新增/修改"就是 put（按主键覆盖），"删除"就是 delete。
- * user   = 登录的 Prison No.（数据分区，多人互不影响）
- * table  = 锻炼名（PUSHUP / BRIDGE / ...）
- *
- * 对外暴露全局 CCDB，并顺带把 jQuery 里所有发往 /db/ 的 $.ajax 请求
- * 改写为本地操作，从而保持 train.js 的界面逻辑完全不变。
+ * 仍然对外暴露全局 CCDB，并把 train.js 里发往 /db/ 的 $.ajax 改道到本地，
+ * 因此界面逻辑无需改动。
  */
 window.CCDB = (function() {
 	var DB_NAME = 'cc-tracker';
 	var STORE = 'records';
 	var VERSION = 1;
 
+	// 云端配置
+	var SYNC = {
+		url: 'https://cc-sync.zliu1022.workers.dev',
+		appKey: '3WJ7gsuf35'
+	};
+
 	var _user = 'guest';
 	var _dbp = null;
+	var _pushTimer = null;
+	var _syncing = false, _pending = false;
+
+	function now() { return Date.now(); }
 
 	function open() {
 		if (_dbp) return _dbp;
@@ -27,10 +34,10 @@ window.CCDB = (function() {
 			req.onupgradeneeded = function(e) {
 				var db = e.target.result;
 				if (!db.objectStoreNames.contains(STORE)) {
-					var store = db.createObjectStore(STORE, {
+					var st = db.createObjectStore(STORE, {
 						keyPath: ['user', 'table', 'Year', 'Month', 'Day', 'Level']
 					});
-					store.createIndex('by_user_table', ['user', 'table'], { unique: false });
+					st.createIndex('by_user_table', ['user', 'table'], { unique: false });
 				}
 			};
 			req.onsuccess = function(e) { resolve(e.target.result); };
@@ -45,16 +52,16 @@ window.CCDB = (function() {
 		});
 	}
 
-	function setUser(name) { _user = name || 'guest'; }
+	function setUser(name) { _user = name || 'guest'; sync(); }
 	function getUser() { return _user; }
 
-	// 查询某个锻炼的全部记录，按 年/月/日/级别 倒序（与原后端一致）
+	// ---------- 本地读（过滤掉墓碑） ----------
 	function getAll(table) {
 		return store('readonly').then(function(st) {
 			return new Promise(function(resolve, reject) {
 				var req = st.index('by_user_table').getAll(IDBKeyRange.only([_user, table]));
 				req.onsuccess = function() {
-					var rows = req.result || [];
+					var rows = (req.result || []).filter(function(r) { return r.deleted !== 1; });
 					rows.sort(function(a, b) {
 						return (b.Year - a.Year) || (b.Month - a.Month) ||
 						       (b.Day - a.Day) || (b.Level - a.Level);
@@ -66,57 +73,181 @@ window.CCDB = (function() {
 		});
 	}
 
-	// 查询某一天的记录，按级别倒序，最多 10 条（与原后端一致）
 	function getByDate(table, year, month, day) {
 		return getAll(table).then(function(rows) {
 			return rows.filter(function(r) {
 				return r.Year === year && r.Month === month && r.Day === day;
-			}).sort(function(a, b) {
-				return b.Level - a.Level;
-			}).slice(0, 10);
+			}).sort(function(a, b) { return b.Level - a.Level; }).slice(0, 10);
 		});
 	}
 
-	// 新增或修改（按主键覆盖）
-	function put(table, rec) {
+	// ---------- 本地写 ----------
+	function writeRec(rec) {
 		return store('readwrite').then(function(st) {
 			return new Promise(function(resolve, reject) {
-				var full = {
-					user: _user, table: table,
-					Year: rec.Year, Month: rec.Month, Day: rec.Day, Level: rec.Level,
-					N1: rec.N1, N2: rec.N2, N3: rec.N3, Comment: rec.Comment || ''
+				var req = st.put(rec);
+				req.onsuccess = function() { resolve(rec); };
+				req.onerror = function() { reject(req.error); };
+			});
+		});
+	}
+
+	function getByKey(key) {
+		return store('readonly').then(function(st) {
+			return new Promise(function(resolve, reject) {
+				var req = st.get(key);
+				req.onsuccess = function() { resolve(req.result || null); };
+				req.onerror = function() { reject(req.error); };
+			});
+		});
+	}
+
+	function allForUser(user) {
+		return store('readonly').then(function(st) {
+			return new Promise(function(resolve, reject) {
+				var req = st.getAll();
+				req.onsuccess = function() {
+					resolve((req.result || []).filter(function(r) { return r.user === user; }));
 				};
-				var req = st.put(full);
-				req.onsuccess = function() { resolve(full); };
 				req.onerror = function() { reject(req.error); };
 			});
 		});
 	}
 
-	// 删除某一天某级别的记录
+	function put(table, r) {
+		var rec = {
+			user: _user, table: table,
+			Year: r.Year, Month: r.Month, Day: r.Day, Level: r.Level,
+			N1: r.N1, N2: r.N2, N3: r.N3, Comment: r.Comment || '',
+			updated_at: now(), deleted: 0, dirty: 1
+		};
+		return writeRec(rec).then(function(v) { schedulePush(); return v; });
+	}
+
+	// 删除 = 写一条墓碑（deleted=1），这样删除也能同步到别的设备
 	function remove(table, year, month, day, level) {
-		return store('readwrite').then(function(st) {
-			return new Promise(function(resolve, reject) {
-				var req = st.delete([_user, table, year, month, day, level]);
-				req.onsuccess = function() { resolve(); };
-				req.onerror = function() { reject(req.error); };
+		var rec = {
+			user: _user, table: table,
+			Year: year, Month: month, Day: day, Level: level,
+			N1: 0, N2: 0, N3: 0, Comment: '',
+			updated_at: now(), deleted: 1, dirty: 1
+		};
+		return writeRec(rec).then(function() { schedulePush(); });
+	}
+
+	// ---------- 同步 ----------
+	function schedulePush() {
+		if (_pushTimer) clearTimeout(_pushTimer);
+		_pushTimer = setTimeout(function() { _pushTimer = null; sync(); }, 600);
+	}
+
+	// 老数据（Phase 1 时期没有 updated_at）首次同步时标脏，好上传到云端
+	function migrateIfNeeded(user) {
+		var flag = 'cc_migrated_' + user;
+		if (localStorage.getItem(flag)) return Promise.resolve();
+		return allForUser(user).then(function(rows) {
+			var jobs = rows.filter(function(r) { return r.updated_at === undefined; })
+				.map(function(r) {
+					r.updated_at = now(); r.deleted = r.deleted ? 1 : 0; r.dirty = 1;
+					return writeRec(r);
+				});
+			return Promise.all(jobs);
+		}).then(function() { localStorage.setItem(flag, '1'); });
+	}
+
+	function pushDirty(user) {
+		return allForUser(user).then(function(rows) {
+			var dirty = rows.filter(function(r) { return r.dirty; });
+			if (!dirty.length) return;
+			var records = dirty.map(function(r) {
+				return {
+					Table: r.table, Year: r.Year, Month: r.Month, Day: r.Day, Level: r.Level,
+					N1: r.N1 | 0, N2: r.N2 | 0, N3: r.N3 | 0, Comment: r.Comment || '',
+					updated_at: r.updated_at, deleted: r.deleted ? 1 : 0
+				};
+			});
+			return fetch(SYNC.url + '/api/push', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', 'X-App-Key': SYNC.appKey },
+				body: JSON.stringify({ user: user, records: records })
+			}).then(function(resp) {
+				if (!resp.ok) throw new Error('push ' + resp.status);
+				return resp.json();
+			}).then(function() {
+				// 成功后清除 dirty（若期间未被再次修改）
+				return Promise.all(dirty.map(function(r) {
+					return getByKey([r.user, r.table, r.Year, r.Month, r.Day, r.Level]).then(function(cur) {
+						if (cur && cur.updated_at === r.updated_at && cur.dirty) {
+							cur.dirty = 0;
+							return writeRec(cur);
+						}
+					});
+				}));
 			});
 		});
+	}
+
+	function pullRemote(user) {
+		var key = 'cc_since_' + user;
+		var since = parseInt(localStorage.getItem(key) || '0', 10) || 0;
+		return fetch(SYNC.url + '/api/pull?user=' + encodeURIComponent(user) + '&since=' + since, {
+			headers: { 'X-App-Key': SYNC.appKey }
+		}).then(function(resp) {
+			if (!resp.ok) throw new Error('pull ' + resp.status);
+			return resp.json();
+		}).then(function(data) {
+			var recs = (data && data.records) || [];
+			var maxU = since, changed = 0;
+			return Promise.all(recs.map(function(rr) {
+				if (rr.updated_at > maxU) maxU = rr.updated_at;
+				var k = [user, rr.Table, rr.Year, rr.Month, rr.Day, rr.Level];
+				return getByKey(k).then(function(local) {
+					if (!local || rr.updated_at > (local.updated_at || 0)) {
+						changed++;
+						return writeRec({
+							user: user, table: rr.Table,
+							Year: rr.Year, Month: rr.Month, Day: rr.Day, Level: rr.Level,
+							N1: rr.N1 | 0, N2: rr.N2 | 0, N3: rr.N3 | 0, Comment: rr.Comment || '',
+							updated_at: rr.updated_at, deleted: rr.deleted ? 1 : 0, dirty: 0
+						});
+					}
+				});
+			})).then(function() {
+				if (maxU > since) localStorage.setItem(key, String(maxU));
+				if (changed > 0 && window.dispatchEvent) {
+					window.dispatchEvent(new CustomEvent('ccdb:synced', { detail: { changed: changed } }));
+				}
+			});
+		});
+	}
+
+	function sync() {
+		if (!SYNC.url) return Promise.resolve();
+		if (typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.resolve();
+		if (_syncing) { _pending = true; return Promise.resolve(); }
+		_syncing = true;
+		var user = _user;
+		return migrateIfNeeded(user)
+			.then(function() { return pushDirty(user); })
+			.then(function() { return pullRemote(user); })
+			.catch(function(e) { console.log('CCDB sync: ' + e); })
+			.then(function() { _syncing = false; if (_pending) { _pending = false; sync(); } });
+	}
+
+	if (typeof window !== 'undefined' && window.addEventListener) {
+		window.addEventListener('online', function() { sync(); });
 	}
 
 	return {
-		setUser: setUser,
-		getUser: getUser,
-		getAll: getAll,
-		getByDate: getByDate,
-		put: put,
-		remove: remove
+		setUser: setUser, getUser: getUser,
+		getAll: getAll, getByDate: getByDate,
+		put: put, remove: remove, sync: sync
 	};
 })();
 
 /*
  * 兼容层：把 train.js 里所有 $.ajax({url:'/db/...'}) 改道到 CCDB。
- * 保持原来的 success(data) / error(err) 回调约定，因此界面代码无需改动。
+ * 保持原来的 success(data) / error(err) 回调约定，界面代码无需改动。
  */
 (function($) {
 	if (!$ || !$.ajax) return;

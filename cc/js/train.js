@@ -99,7 +99,15 @@ $(document).ready(function() {
 	var ccname = cclist[ccidx];
 	var ccimgname = ccimglist[ccidx];
 
-	// 数据改用本地 IndexedDB（见 js/db.js）；恢复上次登录的用户分区
+	// 云同步：拉到其它设备的改动后自动刷新一次（不打断正在填写的弹窗）
+	window.addEventListener('ccdb:synced', function(e) {
+		if (!e.detail || !e.detail.changed) return;
+		if (window.__ccReloaded) return;
+		if ($(".weui_dialog_confirm:visible").length) return;
+		window.__ccReloaded = true;
+		location.reload();
+	});
+	// 数据存本地(IndexedDB) + 云同步(见 js/db.js)；恢复上次登录的用户分区
 	CCDB.setUser(localStorage.ccuser || 'guest');
 
 	var today = new Date();

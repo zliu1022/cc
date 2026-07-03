@@ -87,5 +87,11 @@ ok('admin sees all users with user field', ap.body.records.some(r => r.user === 
 const au = await call('GET', '/api/admin/users', { adminKey: 'testadmin' });
 ok('admin/users lists bob (alice tombstoned)', au.body.users.some(u => u.usr === 'bob'));
 
+// realistic millisecond timestamp must be stored intact (regression: |0 truncated it to 32-bit)
+const bigTs = 1783116806431;
+await call('POST', '/api/push', { appKey: 'testapp', body: { user: 'carol', records: [rec({ updated_at: bigTs })] } });
+const cp = await call('GET', '/api/pull?user=carol&since=0', { appKey: 'testapp' });
+ok('ms timestamp stored intact (no 32-bit truncation)', cp.body.records[0].updated_at === bigTs);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
