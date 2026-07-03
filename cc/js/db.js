@@ -136,6 +136,18 @@ window.CCDB = (function() {
 	}
 
 	// ---------- 同步 ----------
+	// 带超时的 fetch，避免网络卡住导致同步永久挂起
+	function apiFetch(path, opts) {
+		opts = opts || {};
+		var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+		var timer = null;
+		if (ctrl) { opts.signal = ctrl.signal; timer = setTimeout(function() { ctrl.abort(); }, 15000); }
+		return fetch(SYNC.url + path, opts).then(
+			function(r) { if (timer) clearTimeout(timer); return r; },
+			function(e) { if (timer) clearTimeout(timer); throw e; }
+		);
+	}
+
 	function schedulePush() {
 		if (_pushTimer) clearTimeout(_pushTimer);
 		_pushTimer = setTimeout(function() { _pushTimer = null; sync(); }, 600);
@@ -166,7 +178,7 @@ window.CCDB = (function() {
 					updated_at: r.updated_at, deleted: r.deleted ? 1 : 0
 				};
 			});
-			return fetch(SYNC.url + '/api/push', {
+			return apiFetch('/api/push', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json', 'X-App-Key': SYNC.appKey },
 				body: JSON.stringify({ user: user, records: records })
@@ -190,7 +202,7 @@ window.CCDB = (function() {
 	function pullRemote(user) {
 		var key = 'cc_since_' + user;
 		var since = parseInt(localStorage.getItem(key) || '0', 10) || 0;
-		return fetch(SYNC.url + '/api/pull?user=' + encodeURIComponent(user) + '&since=' + since, {
+		return apiFetch('/api/pull?user=' + encodeURIComponent(user) + '&since=' + since, {
 			headers: { 'X-App-Key': SYNC.appKey }
 		}).then(function(resp) {
 			if (!resp.ok) throw new Error('pull ' + resp.status);
@@ -236,6 +248,11 @@ window.CCDB = (function() {
 
 	if (typeof window !== 'undefined' && window.addEventListener) {
 		window.addEventListener('online', function() { sync(); });
+		if (typeof document !== 'undefined' && document.addEventListener) {
+			document.addEventListener('visibilitychange', function() { if (!document.hidden) sync(); });
+		}
+		// 兜底：定期把仍是 dirty 的改动推上去、并拉取其它设备的更新（数据量极小，开销可忽略）
+		setInterval(function() { sync(); }, 30000);
 	}
 
 	return {
