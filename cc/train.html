@@ -325,16 +325,26 @@
 			</div>
 		</div>
 
+		<!-- 版本号：手机上看到的数字就是当前实际运行的版本 -->
+		<div id="appver" style="position: fixed; right: 6px; bottom: 6px; color: #b2b2b2; font-size: 11px; z-index: 5;">v5</div>
+
 	</body>
-	
+
 	<script src="js/jquery-1.8.3.min.js" type="text/javascript" charset="utf-8"></script>
 	<script src="js/db.js" type="text/javascript" charset="utf-8"></script>
 	<script src="js/train.js" type="text/javascript" charset="utf-8"></script>
 	<script type="text/javascript">
 		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.register('sw.js').catch(function(e) {
-				console.log('SW register failed: ' + e);
-			});
+			navigator.serviceWorker.register('sw.js').then(function(reg) { reg.update(); });
+			// 有新版本激活时自动刷新一次，让更新立刻生效（仅在已有旧版本时，避免首次装载空刷）
+			if (navigator.serviceWorker.controller) {
+				var _reloaded = false;
+				navigator.serviceWorker.addEventListener('controllerchange', function() {
+					if (_reloaded) return;
+					_reloaded = true;
+					location.reload();
+				});
+			}
 		}
 	</script>
 

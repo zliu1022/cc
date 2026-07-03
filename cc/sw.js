@@ -2,7 +2,7 @@
  * sw.js — Service Worker：把整个 app 缓存到本地，实现完全离线。
  * 更新静态文件后，请把 CACHE 的版本号 +1（如 cc-v2），旧缓存会自动清理。
  */
-var CACHE = 'cc-v4';
+var CACHE = 'cc-v5';
 
 var ASSETS = [
 	"./",
@@ -69,23 +69,23 @@ self.addEventListener('activate', function(e) {
 	);
 });
 
-// 缓存优先，回退网络；成功获取的同源资源顺便存入缓存
+// stale-while-revalidate：先用缓存秒开，同时后台拉最新存入缓存，下次即为新版
+// （配合页面里的自动刷新，更新能可靠地传到手机，不会一直卡在旧版本）
 self.addEventListener('fetch', function(e) {
 	var req = e.request;
 	if (req.method !== 'GET') return;
 	if (new URL(req.url).origin !== self.location.origin) return;
 
 	e.respondWith(
-		caches.match(req).then(function(cached) {
-			if (cached) return cached;
-			return fetch(req).then(function(resp) {
-				if (resp && resp.status === 200 && resp.type === 'basic') {
-					var copy = resp.clone();
-					caches.open(CACHE).then(function(cache) { cache.put(req, copy); });
-				}
-				return resp;
-			}).catch(function() {
-				return cached; // 离线且未缓存时返回 undefined
+		caches.open(CACHE).then(function(cache) {
+			return cache.match(req).then(function(cached) {
+				var network = fetch(req).then(function(resp) {
+					if (resp && resp.status === 200 && resp.type === 'basic') {
+						cache.put(req, resp.clone());
+					}
+					return resp;
+				}).catch(function() { return cached; });
+				return cached || network;
 			});
 		})
 	);

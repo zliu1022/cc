@@ -4757,7 +4757,15 @@
 		<!--script type="text/javascript" src="js/common.js"></script-->
 		<script type="text/javascript">
 			if ('serviceWorker' in navigator) {
-				navigator.serviceWorker.register('sw.js').catch(function(e) {});
+				navigator.serviceWorker.register('sw.js').then(function(reg) { reg.update(); });
+				if (navigator.serviceWorker.controller) {
+					var _reloaded = false;
+					navigator.serviceWorker.addEventListener('controllerchange', function() {
+						if (_reloaded) return;
+						_reloaded = true;
+						location.reload();
+					});
+				}
 			}
 		</script>
 	</body>
