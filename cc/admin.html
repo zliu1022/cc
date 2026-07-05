@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title>CC 后台</title>
+	<style>
+		:root {
+			--surface-1: #fcfcfb; --plane: #f9f9f7;
+			--ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+			--grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+			/* 六个动作固定配色（取自校验过的分类色板，CVD 安全） */
+			--ex0: #2a78d6; --ex1: #1baf7a; --ex2: #eda100;
+			--ex3: #008300; --ex4: #4a3aa7; --ex5: #e34948;
+		}
+		@media (prefers-color-scheme: dark) {
+			:root {
+				--surface-1: #1a1a19; --plane: #0d0d0d;
+				--ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
+				--grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+				--ex0: #3987e5; --ex1: #199e70; --ex2: #c98500;
+				--ex3: #008300; --ex4: #9085e9; --ex5: #e66767;
+			}
+		}
+		* { box-sizing: border-box; }
+		body {
+			margin: 0; background: var(--plane); color: var(--ink);
+			font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+			font-size: 15px; line-height: 1.45;
+		}
+		.wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
+		header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+		header h1 { font-size: 20px; margin: 0; flex: 1; }
+		button {
+			font: inherit; color: var(--ink); background: var(--surface-1);
+			border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px;
+			cursor: pointer;
+		}
+		button.primary { background: var(--ex0); color: #fff; border-color: transparent; }
+		button:disabled { opacity: .5; cursor: default; }
+		.muted { color: var(--muted); }
+		.card {
+			background: var(--surface-1); border: 1px solid var(--border);
+			border-radius: 12px; padding: 16px; margin-bottom: 16px;
+		}
+		.card h2 { font-size: 14px; margin: 0 0 12px; color: var(--ink2); font-weight: 600; }
+		/* KPI 行 */
+		.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 12px; }
+		.kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+		.kpi .v { font-size: 26px; font-weight: 650; }
+		.kpi .l { font-size: 12px; color: var(--muted); margin-top: 2px; }
+		/* 表 */
+		table { width: 100%; border-collapse: collapse; }
+		th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+		th { color: var(--muted); font-weight: 600; font-size: 12px; }
+		tr.click { cursor: pointer; }
+		tr.click:hover td { background: color-mix(in srgb, var(--ex0) 8%, transparent); }
+		/* 进度条（每个动作一行，长度=级别/10，颜色随动作） */
+		.progress-row { display: grid; grid-template-columns: 64px 1fr 92px; align-items: center; gap: 10px; margin: 8px 0; }
+		.progress-name { font-size: 13px; }
+		.track { background: var(--grid); border-radius: 4px; height: 14px; overflow: hidden; }
+		.fill { height: 100%; border-radius: 4px; }
+		.progress-meta { font-size: 12px; color: var(--ink2); text-align: right; }
+		/* 月度柱状图 */
+		.bars { display: flex; align-items: flex-end; gap: 4px; height: 140px; padding-top: 8px; }
+		.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+		.bar { width: 70%; max-width: 28px; background: var(--ex0); border-radius: 4px 4px 0 0; min-height: 2px; }
+		.bar-x { font-size: 10px; color: var(--muted); white-space: nowrap; transform: rotate(-45deg); transform-origin: center; }
+		.bar-v { font-size: 10px; color: var(--ink2); font-variant-numeric: tabular-nums; }
+		.field { display: flex; gap: 8px; margin-top: 10px; }
+		.field input { flex: 1; font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--plane); color: var(--ink); }
+		.err { color: var(--ex5); font-size: 13px; margin-top: 8px; }
+		.hidden { display: none; }
+		a.back { color: var(--ex0); text-decoration: none; font-size: 14px; }
+	</style>
+</head>
+<body>
+	<div class="wrap">
+		<header>
+			<h1>CC 后台管理</h1>
+			<button id="refresh" class="hidden">刷新</button>
+			<button id="logout" class="hidden">退出</button>
+		</header>
+
+		<!-- 输入 admin 密钥 -->
+		<div id="gate" class="card">
+			<h2>请输入管理员密钥</h2>
+			<div class="muted">即部署时 <code>wrangler secret put ADMIN_KEY</code> 设置的值。只存在本机浏览器，不会进入公开的 app。</div>
+			<div class="field">
+				<input id="key" type="password" placeholder="ADMIN_KEY" autocomplete="off">
+				<button class="primary" id="enter">进入</button>
+			</div>
+			<div id="gateErr" class="err hidden"></div>
+		</div>
+
+		<div id="overview" class="hidden"></div>
+		<div id="detail" class="hidden"></div>
+	</div>
+
+	<script>
+	(function () {
+		var API = 'https://cc-sync.zliu1022.workers.dev';
+		var EX = [
+			{ key: 'PUSHUP', name: '俯卧撑' }, { key: 'BRIDGE', name: '桥' },
+			{ key: 'LEGRAISE', name: '举腿' }, { key: 'SQUAT', name: '深蹲' },
+			{ key: 'PULLUP', name: '引体' }, { key: 'HANDSTAND', name: '倒立' }
+		];
+		var EX_COLOR = ['var(--ex0)','var(--ex1)','var(--ex2)','var(--ex3)','var(--ex4)','var(--ex5)'];
+		// 各动作 10 级的目标总次数（与 train.js 一致），用于完成度
+		var TARGET = {
+			PUSHUP:[150,120,90,50,40,40,40,40,40,100], BRIDGE:[150,120,90,50,40,30,20,16,12,60],
+			LEGRAISE:[120,105,90,75,40,30,30,30,30,60], SQUAT:[150,120,90,100,60,40,40,40,40,100],
+			PULLUP:[120,90,60,30,20,20,16,16,14,12], HANDSTAND:[120,60,120,40,30,24,20,16,12,10]
+		};
+		var $ = function (id) { return document.getElementById(id); };
+		var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]); }); };
+		var key = localStorage.getItem('cc_admin_key') || '';
+		var records = [];
+
+		function ymd(r) { return r.Year * 10000 + r.Month * 100 + r.Day; }
+		function dateStr(r) { return r.Year + '-' + ('0'+r.Month).slice(-2) + '-' + ('0'+r.Day).slice(-2); }
+		function reps(r) { return (r.N1|0) + (r.N2|0) + (r.N3|0); }
+
+		function show(el) { el.classList.remove('hidden'); }
+		function hide(el) { el.classList.add('hidden'); }
+
+		function api(path) {
+			return fetch(API + path, { headers: { 'X-Admin-Key': key } }).then(function (resp) {
+				if (resp.status === 401) { var e = new Error('密钥不对'); e.code = 401; throw e; }
+				if (!resp.ok) throw new Error('HTTP ' + resp.status);
+				return resp.json();
+			});
+		}
+
+		function load() {
+			return api('/api/admin/pull?since=0').then(function (data) {
+				records = (data.records || []).filter(function (r) { return r.deleted !== 1; });
+				hide($('gate')); show($('refresh')); show($('logout'));
+				renderOverview();
+			}).catch(function (e) {
+				if (e.code === 401) { key = ''; localStorage.removeItem('cc_admin_key'); showGate('密钥不对，请重试'); }
+				else { showGate('加载失败：' + e.message); }
+			});
+		}
+
+		function showGate(msg) {
+			hide($('overview')); hide($('detail')); hide($('refresh')); hide($('logout'));
+			show($('gate'));
+			if (msg) { $('gateErr').textContent = msg; show($('gateErr')); } else { hide($('gateErr')); }
+		}
+
+		function byUser() {
+			var m = {};
+			records.forEach(function (r) { (m[r.user] = m[r.user] || []).push(r); });
+			return m;
+		}
+
+		function renderOverview() {
+			hide($('detail'));
+			var users = byUser();
+			var names = Object.keys(users);
+			var totalReps = records.reduce(function (s, r) { return s + reps(r); }, 0);
+			var now = Date.now(), active7 = names.filter(function (u) {
+				return users[u].some(function (r) { return r.updated_at > now - 7*864e5; });
+			}).length;
+
+			var rows = names.map(function (u) {
+				var rs = users[u];
+				var last = rs.reduce(function (a, b) { return ymd(a) >= ymd(b) ? a : b; });
+				return { u: u, n: rs.length, last: last, lastY: ymd(last) };
+			}).sort(function (a, b) { return b.lastY - a.lastY; });
+
+			var html = '<div class="kpis">' +
+				kpi(names.length, '用户') + kpi(records.length, '记录') +
+				kpi(totalReps, '总次数') + kpi(active7, '近7天活跃') + '</div>';
+			html += '<div class="card"><h2>用户（点击查看详情）</h2><table><thead><tr>' +
+				'<th>Prison No.</th><th>记录数</th><th>最近训练</th></tr></thead><tbody>' +
+				rows.map(function (r) {
+					return '<tr class="click" data-u="' + esc(r.u) + '"><td>' + esc(r.u) +
+						'</td><td>' + r.n + '</td><td>' + dateStr(r.last) + '</td></tr>';
+				}).join('') + '</tbody></table></div>';
+
+			var ov = $('overview'); ov.innerHTML = html; show(ov);
+			Array.prototype.forEach.call(ov.querySelectorAll('tr.click'), function (tr) {
+				tr.addEventListener('click', function () { renderDetail(tr.getAttribute('data-u')); });
+			});
+		}
+
+		function kpi(v, l) { return '<div class="kpi"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>'; }
+
+		function renderDetail(user) {
+			hide($('overview'));
+			var rs = records.filter(function (r) { return r.user === user; });
+			var totalReps = rs.reduce(function (s, r) { return s + reps(r); }, 0);
+			var last = rs.reduce(function (a, b) { return ymd(a) >= ymd(b) ? a : b; });
+
+			// 每个动作的“当前级别”= 最近一条记录的级别
+			var perEx = EX.map(function (e, i) {
+				var ers = rs.filter(function (r) { return r.Table === e.key; });
+				if (!ers.length) return { e: e, i: i, level: 0, reps: 0, target: 0 };
+				var latest = ers.reduce(function (a, b) { return ymd(a) >= ymd(b) ? a : b; });
+				var t = (TARGET[e.key] || [])[latest.Level - 1] || 0;
+				return { e: e, i: i, level: latest.Level, reps: reps(latest), target: t };
+			});
+
+			// 每月训练量（最近 12 个月）
+			var byMonth = {};
+			rs.forEach(function (r) { var k = r.Year + '-' + ('0'+r.Month).slice(-2); byMonth[k] = (byMonth[k]||0) + reps(r); });
+			var months = Object.keys(byMonth).sort().slice(-12);
+			var maxV = Math.max.apply(null, months.map(function (m) { return byMonth[m]; }).concat([1]));
+
+			var html = '<a class="back" href="javascript:;" id="back">← 返回全部用户</a>' +
+				'<h2 style="margin:10px 0">' + esc(user) + '</h2>' +
+				'<div class="kpis">' + kpi(rs.length, '记录') + kpi(totalReps, '总次数') +
+				kpi(dateStr(last), '最近训练') + '</div>';
+
+			html += '<div class="card"><h2>各动作进度（当前式 / 10）</h2>' +
+				perEx.map(function (p) {
+					var pct = Math.round(p.level / 10 * 100);
+					var meta = p.level ? ('第' + p.level + '式 · ' + p.reps + '次' + (p.target ? '/' + p.target : '')) : '未开始';
+					return '<div class="progress-row"><div class="progress-name">' + esc(p.e.name) +
+						'</div><div class="track"><div class="fill" style="width:' + pct + '%;background:' + EX_COLOR[p.i] + '"></div></div>' +
+						'<div class="progress-meta">' + meta + '</div></div>';
+				}).join('') + '</div>';
+
+			html += '<div class="card"><h2>每月训练量（次数）</h2>' +
+				(months.length ? '<div class="bars">' + months.map(function (m) {
+					var h = Math.round(byMonth[m] / maxV * 116);
+					return '<div class="bar-col" title="' + m + '：' + byMonth[m] + ' 次">' +
+						'<div class="bar-v">' + byMonth[m] + '</div>' +
+						'<div class="bar" style="height:' + h + 'px"></div>' +
+						'<div class="bar-x">' + m.slice(2) + '</div></div>';
+				}).join('') + '</div>' : '<div class="muted">暂无数据</div>') + '</div>';
+
+			var recent = rs.slice().sort(function (a, b) { return ymd(b) - ymd(a); }).slice(0, 20);
+			html += '<div class="card"><h2>最近记录</h2><table><thead><tr>' +
+				'<th>日期</th><th>动作</th><th>式</th><th>次数</th><th>备注</th></tr></thead><tbody>' +
+				recent.map(function (r) {
+					var name = (EX.filter(function (e) { return e.key === r.Table; })[0] || { name: r.Table }).name;
+					return '<tr><td>' + dateStr(r) + '</td><td>' + esc(name) + '</td><td>' + r.Level +
+						'</td><td>' + (r.N1|0) + '/' + (r.N2|0) + '/' + (r.N3|0) + '</td><td>' + esc(r.Comment) + '</td></tr>';
+				}).join('') + '</tbody></table></div>';
+
+			var d = $('detail'); d.innerHTML = html; show(d);
+			$('back').addEventListener('click', renderOverview);
+		}
+
+		// 事件
+		$('enter').addEventListener('click', function () {
+			key = $('key').value.trim();
+			if (!key) return;
+			localStorage.setItem('cc_admin_key', key);
+			load();
+		});
+		$('key').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('enter').click(); });
+		$('refresh').addEventListener('click', load);
+		$('logout').addEventListener('click', function () { key = ''; localStorage.removeItem('cc_admin_key'); showGate(); });
+
+		if (key) load(); else showGate();
+	})();
+	</script>
+</body>
+</html>
