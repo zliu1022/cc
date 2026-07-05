@@ -99,6 +99,23 @@ $(document).ready(function() {
 	var ccname = cclist[ccidx];
 	var ccimgname = ccimglist[ccidx];
 
+	// 点右下角版本号 = 强制更新到最新版（清 SW 缓存并注销后刷新；不会删除本地记录）
+	$("#appver").css("cursor", "pointer").attr("title", "点此检查更新").on("click", function() {
+		if (!confirm("检查并更新到最新版本？(不会删除你的记录)")) return;
+		Promise.resolve()
+			.then(function() {
+				return window.caches ? caches.keys().then(function(ks) {
+					return Promise.all(ks.map(function(k) { return caches.delete(k); }));
+				}) : null;
+			})
+			.then(function() {
+				return navigator.serviceWorker ? navigator.serviceWorker.getRegistrations().then(function(rs) {
+					return Promise.all(rs.map(function(r) { return r.unregister(); }));
+				}) : null;
+			})
+			.then(function() { location.reload(true); });
+	});
+
 	// 云同步：拉到其它设备的改动后自动刷新一次（不打断正在填写的弹窗）
 	window.addEventListener('ccdb:synced', function(e) {
 		if (!e.detail || !e.detail.changed) return;
